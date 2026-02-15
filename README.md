@@ -22,7 +22,7 @@ chmod +x build.sh install.sh
 ./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.11.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.12.vsix`
 
 **Development mode:**
 
