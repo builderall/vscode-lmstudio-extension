@@ -441,19 +441,28 @@ async function handleReviewCommand(
     }
     messages.push({
       role: 'user',
-      content: `Review the following codebase. Rules:
+      content: `Review the following codebase.
 
-1. **Only report issues you can directly verify from the code provided.** Do not speculate about what "might" happen or what "could" be problematic. If you cannot point to the exact line causing the issue, do not report it.
-2. **Do not report missing tests for code that has tests in the provided context.** Check the test/reference files before claiming test gaps.
-3. **Do not suggest architectural changes unless there is a concrete bug or measurable problem.** "Could be cleaner" or "consider using X pattern" are not findings.
-4. **Do not pad.** If there are no real issues, say so. A short review with zero findings is better than a long review with fabricated ones.
+OUTPUT FORMAT: Only output confirmed findings or "No issues found." Do NOT narrate your analysis process — no "let me check", "looking at", "I notice", "this looks correct", etc. The user only wants results, not a walkthrough of how you read the code.
+
+BEFORE writing any finding, silently verify ALL of these:
+- The EXACT line(s) of code causing the issue
+- A SPECIFIC input or scenario that triggers the bug
+- That the behavior is actually wrong (not working as intended)
+- That you have re-read the code to confirm
+If ANY check fails, skip the finding entirely.
+
+Rules:
+1. **Only report verified issues.** Do not speculate about what "might" happen or what "could" be problematic.
+2. **Do not report missing tests for code that has tests in the provided context.**
+3. **Do not suggest architectural changes unless there is a concrete bug.**
+4. **Do not pad.** If there are no real issues, say "No issues found." and stop.
+5. **Never retract.** If you are not 100% certain before you start writing a finding, do not write it.
 
 For each real finding:
 - Rate severity: 🔴 Bug/security issue, 🟡 Warning, 🔵 Minor suggestion
-- Show the exact code snippet and file name
-- Explain the concrete impact (what breaks, what data is lost, what fails)
-
-Do not use fixed section headers — just report what you find, grouped naturally.
+- Quote the exact problematic code verbatim
+- Name the file and describe the concrete impact
 
 ` + fileContext
     });

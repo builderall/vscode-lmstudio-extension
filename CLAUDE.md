@@ -41,6 +41,8 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - **v0.0.7**: Fix AbortController race condition (abort previous in-flight request before starting a new one)
 - **v0.0.8**: Configurable `/review` file patterns (`reviewInclude`/`reviewExclude` settings) with broadened defaults (supports TS, JS, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin), `/review` shows file list in diagnostic output, `icon.svg` for Chat panel participant, `.vscodeignore` for clean VSIX packaging, fix `/review` glob pattern that missed files directly in `src/` (changed from `{src/**,lib/**,app/**}/*.{ext}` to `**/*.{ext}` with test files added to default exclude)
 - **v0.0.9**: Improved `/review` quality — reworked prompt to reduce hallucinations (anti-speculation rules, no forced section structure, severity-only findings), auto-includes project context files (`CLAUDE.md`, `README.md`, `package.json`) so the model understands architecture decisions, includes test files as read-only reference so the model won't claim missing test coverage, diagnostic output now shows review/context/test file breakdown
+- **v0.0.10**: Normalize line endings to LF across codebase, add `.gitattributes` for consistent EOL, add `push.sh` convenience script
+- **v0.0.11**: Rework `/review` anti-hallucination prompt for streaming — added "verify before writing" checklist (model must silently confirm exact line, specific trigger scenario, and correctness before emitting any finding), "never retract" rule (if not 100% certain, don't start writing it), mandatory verbatim code quoting, "no narration" output format rule (suppress analysis walkthrough, only output findings or "No issues found.")
 
 ## Build & Install
 
