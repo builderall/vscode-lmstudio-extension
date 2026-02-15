@@ -8,7 +8,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 
 - `src/extension.ts` — Extension logic: `LMStudioService` (API calls + SSE streaming + model auto-detect + request timeout + workspace file discovery + deactivation cleanup), `buildMessagesFromHistory` (conversation context with turn cap), slash command handlers (`/models`, `/config`, `/review`), and `activate` (participant registration via `vscode.chat.createChatParticipant`)
 - `src/utils.ts` — Pure utility functions (no vscode dependency): `parseSSEChunk`, `truncateContent`, `sliceHistory`, `formatModelsOutput`, `formatConfigOutput`
-- `src/test/utils.test.ts` — Unit tests for all utility functions (25 tests, mocha + assert)
+- `src/test/utils.test.ts` — Unit tests for all utility functions (27 tests, mocha + assert)
 - `package.json` — Extension manifest with `chatParticipants` contribution, `extensionDependencies` on `github.copilot-chat`, min VS Code 1.93.0
 - `build.sh` / `build.bat` — Compile + package VSIX (dynamically detects output filename)
 - `install.sh` / `install.bat` — Uninstalls ALL old lmstudio extensions first, then installs latest VSIX by date
@@ -39,6 +39,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - **v0.0.5**: `/review` slash command with workspace-wide file discovery (`vscode.workspace.findFiles`), rolling timeout that resets on each SSE chunk (prevents killing long streams), leftover SSE buffer processing, single config read per request, `@types/node` bumped to 18.x, `vsce` moved to devDependencies
 - **v0.0.6**: `/review` diagnostic output (shows context size before sending), `/review` auto-extends timeout to 3 minutes minimum (large codebase context needs more time for first token), SSE error event handling in `parseSSEChunk` (surfaces LM Studio errors like context overflow instead of silently discarding them)
 - **v0.0.7**: Fix AbortController race condition (abort previous in-flight request before starting a new one)
+- **v0.0.8**: Configurable `/review` file patterns (`reviewInclude`/`reviewExclude` settings) with broadened defaults (supports TS, JS, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin), `/review` shows file list in diagnostic output, `icon.svg` for Chat panel participant, `.vscodeignore` for clean VSIX packaging
 
 ## Build & Install
 

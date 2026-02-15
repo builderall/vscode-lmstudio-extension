@@ -22,7 +22,7 @@ chmod +x build.sh install.sh
 ./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.7.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.8.vsix`
 
 **Development mode:**
 
@@ -43,6 +43,8 @@ npm install && npm run compile
 | `lmstudio.maxHistoryTurns` | `20` | Max conversation turns to include in history |
 | `lmstudio.temperature` | `0.7` | Sampling temperature (0 = deterministic, 2 = most creative) |
 | `lmstudio.requestTimeout` | `60000` | Request timeout in milliseconds |
+| `lmstudio.reviewInclude` | _(common source dirs/langs)_ | Glob pattern for files to include in `/review` |
+| `lmstudio.reviewExclude` | _(node_modules, out, dist, etc.)_ | Glob pattern for files to exclude from `/review` |
 
 ## Usage
 

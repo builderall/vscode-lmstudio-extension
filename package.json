@@ -3,7 +3,7 @@
   "displayName": "LM Studio Chat",
   "description": "Chat participant for LM Studio local API",
   "publisher": "builderall",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/builderall/vscode-lmstudio-extension"
@@ -102,6 +102,16 @@
           "default": 60000,
           "minimum": 5000,
           "description": "Request timeout in milliseconds (default: 60000 = 60 seconds)"
+        },
+        "lmstudio.reviewInclude": {
+          "type": "string",
+          "default": "{src/**,lib/**,app/**}/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}",
+          "description": "Glob pattern for files to include in /review (default covers common source directories and languages)"
+        },
+        "lmstudio.reviewExclude": {
+          "type": "string",
+          "default": "{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/*.d.ts,**/*.min.js,**/*.map}",
+          "description": "Glob pattern for files to exclude from /review"
         }
       }
     }

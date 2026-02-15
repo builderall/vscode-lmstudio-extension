@@ -11,6 +11,8 @@ interface LMStudioConfig {
   temperature: number;
   maxTokens: number;
   requestTimeout: number;
+  reviewInclude: string;
+  reviewExclude: string;
 }
 
 class LMStudioService {
@@ -28,6 +30,8 @@ class LMStudioService {
       temperature: config.get<number>('temperature') ?? 0.7,
       maxTokens: config.get<number>('maxTokens') || 4096,
       requestTimeout: config.get<number>('requestTimeout') || 60000,
+      reviewInclude: config.get<string>('reviewInclude') || '{src/**,lib/**,app/**}/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}',
+      reviewExclude: config.get<string>('reviewExclude') || '{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/*.d.ts,**/*.min.js,**/*.map}',
     };
   }
 
@@ -176,12 +180,10 @@ class LMStudioService {
     return context ? '**Files included in context:**' + context : '';
   }
 
-  async buildWorkspaceContext(maxFileSize: number): Promise<string> {
-    const include = '{src/**/*.ts,package.json,tsconfig.json}';
-    const exclude = '{**/node_modules/**,**/out/**,**/*.d.ts}';
-    const uris = await vscode.workspace.findFiles(include, exclude, 50);
+  async buildWorkspaceContext(cfg: LMStudioConfig): Promise<{ context: string; fileNames: string[] }> {
+    const uris = await vscode.workspace.findFiles(cfg.reviewInclude, cfg.reviewExclude, 50);
 
-    if (uris.length === 0) { return ''; }
+    if (uris.length === 0) { return { context: '', fileNames: [] }; }
 
     // Deduplicate and sort by path for stable ordering
     const uniqueFiles = Array.from(
@@ -189,19 +191,21 @@ class LMStudioService {
     ).sort((a, b) => a.fsPath.localeCompare(b.fsPath));
 
     let context = '';
+    const fileNames: string[] = [];
     for (const file of uniqueFiles) {
       try {
         const bytes = await vscode.workspace.fs.readFile(file);
         let content = Buffer.from(bytes).toString('utf-8');
         const relPath = vscode.workspace.asRelativePath(file);
-        content = truncateContent(content, maxFileSize);
+        content = truncateContent(content, cfg.maxFileSize);
         context += `\n\n### File: ${relPath}\n\`\`\`\n${content}\n\`\`\``;
+        fileNames.push(relPath);
       } catch {
         // Skip unreadable files
       }
     }
 
-    return context ? `**Workspace files (${uniqueFiles.length}):**` + context : '';
+    return { context: context ? `**Workspace files (${fileNames.length}):**` + context : '', fileNames };
   }
 
   abort(): void {
@@ -304,7 +308,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'icon.png');
+  participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'icon.svg');
   context.subscriptions.push(participant);
 
   // Abort in-flight requests on deactivation
@@ -350,14 +354,15 @@ async function handleReviewCommand(
 ): Promise<void> {
   stream.progress('Scanning workspace files...');
   try {
-    const fileContext = await service.buildWorkspaceContext(cfg.maxFileSize);
+    const { context: fileContext, fileNames } = await service.buildWorkspaceContext(cfg);
     if (!fileContext) {
       stream.markdown('**No files found to review.** Make sure your workspace contains source files.');
       return;
     }
 
     const contextSize = fileContext.length;
-    stream.markdown(`*Found workspace files (${(contextSize / 1024).toFixed(1)} KB of context). Sending to LM Studio for review — this may take a minute or two...*\n\n`);
+    const fileList = fileNames.map(f => `- \`${f}\``).join('\n');
+    stream.markdown(`*Found ${fileNames.length} files (${(contextSize / 1024).toFixed(1)} KB of context):*\n${fileList}\n\n*Sending to LM Studio for review — this may take a minute or two...*\n\n`);
     stream.progress('Waiting for LM Studio to process...');
 
     const messages: Array<{ role: string; content: string }> = [];

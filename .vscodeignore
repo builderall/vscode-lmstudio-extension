@@ -1,4 +1,16 @@
-{
-  "comments": true,
-  "ignoreDeprecations": false
-}
+.vscode/**
+.claude/**
+src/**
+out/test/**
+node_modules/**
+CLAUDE.md
+REQUIREMENTS.md
+build.sh
+build.bat
+install.sh
+install.bat
+setup-wsl-networking.ps1
+tsconfig.json
+.gitignore
+.vscodeignore
+*.vsix
