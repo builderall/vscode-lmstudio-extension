@@ -2,23 +2,26 @@
 
 ## Overview
 
-VS Code sidebar extension that connects to LM Studio's local OpenAI-compatible API for code assistance with workspace file context.
+VS Code Chat panel participant (`@lmstudio`) that connects to LM Studio's local OpenAI-compatible API for code assistance with workspace file context.
 
 ## Architecture
 
 - **Language**: TypeScript
-- **Entry point**: `src/extension.ts` — `ChatViewProvider` implementing `WebviewViewProvider`
-- **UI**: `src/webview.html` — HTML/CSS/JS loaded at runtime (not embedded)
+- **Entry point**: `src/extension.ts` — Chat participant registered via `vscode.chat.createChatParticipant`
+- **UI**: VS Code's native Chat panel (requires GitHub Copilot Chat extension)
 - **Activation**: `onStartupFinished`
+- **Min VS Code**: 1.93.0
 
 ## Features
 
-- Chat sidebar in the Explorer panel (left side)
-- UI controls: **Add Files** button, **Clear Files** button, **Send** button, and a chat input box
-- Auto-includes current editor file as context
-- File selection dialog to add multiple workspace files to context
-- Markdown rendering for assistant responses (headers, bold, code blocks)
-- Streams responses from LM Studio's `/v1/chat/completions` endpoint
+- Chat participant in VS Code's native Chat panel (right sidebar), invoked with `@lmstudio`
+- Streaming responses from LM Studio's `/v1/chat/completions` endpoint via SSE
+- Auto-includes the current active editor file as context
+- Additional file references via `#file:` syntax in the chat input
+- Native markdown rendering (code blocks, headers, bold, lists)
+- Conversation history maintained automatically by the Chat panel
+- Cancellation support — stop responses mid-stream
+- Connection error handling with WSL-specific guidance
 
 ## Configuration
 
@@ -32,10 +35,10 @@ VS Code sidebar extension that connects to LM Studio's local OpenAI-compatible A
 
 ```bash
 npm install && npm run compile && npx vsce package
-code --install-extension lmstudio-chat-0.0.1.vsix
+code --install-extension lmstudio-chat-0.0.2.vsix
 ```
 
-Or use the provided scripts: `build.sh` / `build.bat` and `install-wsl.sh` / `install.bat`.
+Or use the provided scripts: `build.sh` / `build.bat` and `install.sh` / `install.bat`.
 
 ## WSL Setup
 

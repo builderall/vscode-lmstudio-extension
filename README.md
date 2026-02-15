@@ -1,11 +1,12 @@
 # LM Studio Chat for VS Code
 
-A VS Code sidebar extension that connects to [LM Studio](https://lmstudio.ai)'s local OpenAI-compatible API.
+A VS Code Chat panel participant that connects to [LM Studio](https://lmstudio.ai)'s local OpenAI-compatible API. Type `@lmstudio` in the Chat panel to start chatting with your local models.
 
 ## Prerequisites
 
 - [LM Studio](https://lmstudio.ai) running with a model loaded
 - Local server enabled (default: `http://localhost:1234/v1`)
+- [GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat) extension installed (provides the Chat panel)
 
 ## Install
 
@@ -16,11 +17,11 @@ A VS Code sidebar extension that connects to [LM Studio](https://lmstudio.ai)'s 
 .\build.bat && .\install.bat
 
 # WSL / Linux
-chmod +x build.sh install-wsl.sh
-./build.sh && ./install-wsl.sh
+chmod +x build.sh install.sh
+./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.1.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.2.vsix`
 
 **Development mode:**
 
@@ -40,8 +41,11 @@ npm install && npm run compile
 ## Usage
 
 1. Start LM Studio and load a model
-2. Open the **LM Studio Chat** view in the Explorer sidebar
-3. Start chatting
+2. Open the **Chat panel** in the right sidebar (View → Chat, or `Ctrl+Alt+I`)
+3. In the chat input, type `@lmstudio` to select the LM Studio participant
+4. Type your message and press Enter — responses stream in real-time
+5. Your current editor file is automatically included as context
+6. To add more files, use `#file:path/to/file` in your message
 
 ## WSL Note
 

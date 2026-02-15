@@ -1,237 +1,101 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
-import { spawn } from 'child_process';
 
-export function activate(context: vscode.ExtensionContext) {
-  // Register the webview provider for the sidebar view
-  const provider = new ChatViewProvider(context.extensionUri);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('lmstudio-chat', provider)
-  );
-
-  // Track active editor
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(editor => {
-      if (editor) {
-        provider.setCurrentFile(editor.document.uri);
-      }
-    })
-  );
-
-  // Set initial file if there's an active editor
-  if (vscode.window.activeTextEditor) {
-    provider.setCurrentFile(vscode.window.activeTextEditor.document.uri);
-  }
-}
-
-class ChatViewProvider implements vscode.WebviewViewProvider {
-  private currentFile: vscode.Uri | null = null;
-  private selectedFiles: vscode.Uri[] = [];
-  private webviewView: vscode.WebviewView | null = null;
-  private proxyProcess: any = null;
-
-  constructor(private extensionUri: vscode.Uri) {}
-
-  private getWindowsGatewayIP(): string | null {
-    try {
-      if (!fs.existsSync('/proc/version')) {
-        return null;
-      }
-      const procVersion = fs.readFileSync('/proc/version', 'utf-8');
-      const isWSL = procVersion.toLowerCase().includes('microsoft') || 
-                    procVersion.toLowerCase().includes('wsl');
-      
-      if (!isWSL) {
-        return null;
-      }
-
-      // Try to get the gateway IP from resolv.conf (common for WSL)
-      try {
-        const resolvConf = fs.readFileSync('/etc/resolv.conf', 'utf-8');
-        const match = resolvConf.match(/nameserver\s+([0-9.]+)/);
-        if (match && match[1]) {
-          return match[1];
-        }
-      } catch (e) {
-        // Ignore
-      }
-
-      // Fallback to common WSL gateway
-      return '172.17.0.1';
-    } catch (e) {
-      return null;
-    }
-  }
-
-  private startProxyIfNeeded() {
-    if (this.proxyProcess) {
-      return; // Already running
-    }
-
-    try {
-      const proxyScript = vscode.Uri.joinPath(this.extensionUri, 'lm-studio-proxy.js').fsPath;
-      const windowsIP = this.getWindowsGatewayIP() || '10.255.255.254';
-      
-      this.proxyProcess = spawn('node', [proxyScript, '9999', windowsIP, '1234'], {
-        stdio: 'ignore',
-        detached: true
-      });
-
-      this.proxyProcess.unref();
-      console.log('[LM Studio] Proxy process started at localhost:9999');
-    } catch (err) {
-      console.warn('[LM Studio] Could not start proxy:', err instanceof Error ? err.message : err);
-    }
-  }
-
+class LMStudioService {
   private getApiUrl(): string {
-    let apiUrl = vscode.workspace.getConfiguration('lmstudio').get<string>('apiBaseUrl');
-    
-    if (!apiUrl) {
-      // Check if we're in WSL - if so, try using local proxy first
-      const windowsIP = this.getWindowsGatewayIP();
-      if (windowsIP) {
-        this.startProxyIfNeeded();
-        apiUrl = 'http://localhost:9999/v1';
-        console.log('[LM Studio] Using local proxy at localhost:9999 to reach Windows');
-      } else {
-        apiUrl = 'http://localhost:1234/v1';
-      }
-    }
-    
-    return apiUrl;
+    const apiUrl = vscode.workspace.getConfiguration('lmstudio').get<string>('apiBaseUrl');
+    return apiUrl || 'http://localhost:1234/v1';
   }
 
-  setCurrentFile(uri: vscode.Uri) {
-    this.currentFile = uri;
-    this.updateWebviewFiles();
-  }
-
-  private updateWebviewFiles() {
-    if (this.webviewView) {
-      this.webviewView.webview.postMessage({
-        command: 'updateFiles',
-        currentFile: this.currentFile?.fsPath,
-        selectedFiles: this.selectedFiles.map(f => f.fsPath)
-      });
-    }
-  }
-
-  resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
-    this.webviewView = webviewView;
-    
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.extensionUri]
-    };
-
-    // Load HTML from file
-    const htmlPath = vscode.Uri.joinPath(this.extensionUri, 'src', 'webview.html');
-    fs.readFile(htmlPath.fsPath, 'utf-8', (err, data) => {
-      if (err) {
-        console.error('Failed to load webview:', err);
-        webviewView.webview.html = '<h1>Error loading webview</h1>';
-        return;
-      }
-      webviewView.webview.html = data;
-    });
-    
-    this.updateWebviewFiles();
-
-    webviewView.webview.onDidReceiveMessage(async (message) => {
-      if (message.command === 'sendMessage') {
-        await this.handleSendMessage(webviewView, message);
-      } else if (message.command === 'selectFiles') {
-        await this.handleSelectFiles();
-      } else if (message.command === 'clearFiles') {
-        this.selectedFiles = [];
-        this.updateWebviewFiles();
-      }
-    });
-  }
-
-  private async handleSendMessage(webviewView: vscode.WebviewView, message: any) {
+  async sendChatCompletion(
+    messages: Array<{ role: string; content: string }>,
+    token: vscode.CancellationToken,
+    stream: vscode.ChatResponseStream
+  ): Promise<void> {
     const apiUrl = this.getApiUrl();
     const apiKey = vscode.workspace.getConfiguration('lmstudio').get<string>('apiKey') || 'not-needed';
     const model = vscode.workspace.getConfiguration('lmstudio').get<string>('model') || '';
 
     if (!model) {
-      vscode.window.showErrorMessage('Please set the LM Studio model in settings');
-      return;
+      throw new Error('Please set the LM Studio model in settings (lmstudio.model)');
     }
 
-    try {
-      // Build messages with file context
-      let messagesWithContext = [...message.messages];
-      const fileContext = await this.buildFileContext();
-      
-      if (fileContext) {
-        // Insert file context in the last user message
-        if (messagesWithContext.length > 0) {
-          const lastMessage = messagesWithContext[messagesWithContext.length - 1];
-          if (lastMessage.role === 'user') {
-            lastMessage.content += '\n\n' + fileContext;
+    const abortController = new AbortController();
+    token.onCancellationRequested(() => abortController.abort());
+
+    const response = await fetch(`${apiUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.7,
+        stream: true
+      }),
+      signal: abortController.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`LM Studio API error: ${response.status} - ${errorText}`);
+    }
+
+    // Parse SSE stream
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) { break; }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const json = JSON.parse(line.slice(6));
+            const content = json.choices?.[0]?.delta?.content;
+            if (content) {
+              stream.markdown(content);
+            }
+          } catch {
+            // Skip malformed chunks
           }
         }
       }
-
-      console.log(`[LM Studio] Connecting to ${apiUrl}/chat/completions with model: ${model}`);
-
-      const response = await fetch(`${apiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messagesWithContext,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      webviewView.webview.postMessage({
-        command: 'receiveMessage',
-        content: data.choices[0].message.content
-      });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[LM Studio] Error:', errorMsg);
-      
-      let userMessage = errorMsg;
-      if (errorMsg.includes('Failed to fetch') || errorMsg.includes('Connection refused') || errorMsg.includes('Cannot reach')) {
-        userMessage = `Cannot connect to LM Studio.\n\nWhen using WSL, the extension auto-starts a proxy at localhost:9999 BUT:\n\nLM Studio on Windows MUST listen on 0.0.0.0 (all interfaces), not just localhost/127.0.0.1\n\n━━━ FIX LM STUDIO ━━━\n1. Stop LM Studio \n2. Find config: AppData\\Local\\LM Studio\\config.json\n3. Change "host": "127.0.0.1" to "host": "0.0.0.0"\n4. Restart LM Studio\n5. Try again in VS Code\n\n━━ OR MANUAL SETUP ━━\nSet in VS Code settings:\n"lmstudio.apiBaseUrl": "http://10.255.255.254:1234/v1"`;
-      }
-      
-      webviewView.webview.postMessage({
-        command: 'error',
-        message: userMessage
-      });
     }
   }
 
-  private async buildFileContext(): Promise<string> {
-    const files = [
-      ...(this.currentFile ? [this.currentFile] : []),
-      ...this.selectedFiles
-    ];
+  buildFileContext(request: vscode.ChatRequest): string {
+    const files: vscode.Uri[] = [];
 
-    const uniqueFiles = Array.from(new Map(files.map(f => [f.fsPath, f])).values());
-    
-    if (uniqueFiles.length === 0) {
-      return '';
+    // Include current active editor file
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      files.push(editor.document.uri);
     }
+
+    // Include files from #file: references in the chat input
+    for (const ref of request.references) {
+      if (ref.value instanceof vscode.Uri) {
+        files.push(ref.value);
+      } else if (ref.value instanceof vscode.Location) {
+        files.push(ref.value.uri);
+      }
+    }
+
+    // Deduplicate
+    const uniqueFiles = Array.from(
+      new Map(files.map(f => [f.fsPath, f])).values()
+    );
+
+    if (uniqueFiles.length === 0) { return ''; }
 
     let context = '';
     for (const file of uniqueFiles) {
@@ -239,27 +103,82 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
         const content = fs.readFileSync(file.fsPath, 'utf-8');
         const relPath = vscode.workspace.asRelativePath(file);
         context += `\n\n### File: ${relPath}\n\`\`\`\n${content}\n\`\`\``;
-      } catch (err) {
-        // Skip files that can't be read
+      } catch {
+        // Skip unreadable files
       }
     }
-    
+
     return context ? '**Files included in context:**' + context : '';
   }
+}
 
-  private async handleSelectFiles() {
-    const result = await vscode.window.showOpenDialog({
-      canSelectFiles: true,
-      canSelectFolders: false,
-      canSelectMany: true,
-      defaultUri: vscode.workspace.workspaceFolders?.[0].uri
-    });
+function buildMessagesFromHistory(
+  chatContext: vscode.ChatContext
+): Array<{ role: string; content: string }> {
+  const messages: Array<{ role: string; content: string }> = [];
 
-    if (result) {
-      this.selectedFiles = [...this.selectedFiles, ...result];
-      this.updateWebviewFiles();
+  for (const turn of chatContext.history) {
+    if (turn instanceof vscode.ChatRequestTurn) {
+      messages.push({ role: 'user', content: turn.prompt });
+    } else if (turn instanceof vscode.ChatResponseTurn) {
+      let text = '';
+      for (const part of turn.response) {
+        if (part instanceof vscode.ChatResponseMarkdownPart) {
+          text += part.value.value;
+        }
+      }
+      if (text) {
+        messages.push({ role: 'assistant', content: text });
+      }
     }
   }
+
+  return messages;
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  const service = new LMStudioService();
+
+  const participant = vscode.chat.createChatParticipant(
+    'lmstudio-chat.participant',
+    async (request, chatContext, stream, token) => {
+      // Build conversation history
+      const messages = buildMessagesFromHistory(chatContext);
+
+      // Build file context from active editor + #file: references
+      const fileContext = service.buildFileContext(request);
+
+      // Append user message with file context
+      const userContent = fileContext
+        ? request.prompt + '\n\n' + fileContext
+        : request.prompt;
+      messages.push({ role: 'user', content: userContent });
+
+      // Stream response from LM Studio
+      stream.progress('Thinking...');
+
+      try {
+        await service.sendChatCompletion(messages, token, stream);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        if (msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('Cannot reach')) {
+          stream.markdown(
+            `**Cannot connect to LM Studio.**\n\n` +
+            `Make sure LM Studio is running and the API server is enabled.\n\n` +
+            `Check your settings:\n` +
+            `- \`lmstudio.apiBaseUrl\`: ${vscode.workspace.getConfiguration('lmstudio').get('apiBaseUrl')}\n` +
+            `- \`lmstudio.model\`: ${vscode.workspace.getConfiguration('lmstudio').get('model') || '(not set)'}\n\n` +
+            `**WSL users:** Run \`setup-wsl-networking.ps1\` to enable mirrored networking.`
+          );
+        } else {
+          stream.markdown(`**Error:** ${msg}`);
+        }
+      }
+    }
+  );
+
+  participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'icon.png');
+  context.subscriptions.push(participant);
 }
 
 export function deactivate() {}

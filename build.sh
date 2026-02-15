@@ -15,12 +15,10 @@ npm run compile
 
 # Package extension
 echo "📦 Packaging extension..."
-npx vsce package
+npx vsce package --allow-missing-repository
 
+# Show the packaged file
+VSIX_FILE=$(ls -t lmstudio-chat-*.vsix 2>/dev/null | head -1)
 echo "✅ Build complete!"
-echo "📍 Extension packaged: lmstudio-chat-0.0.1.vsix"
-echo "📋 Next steps:"
-echo "   1. Copy the .vsix file to Windows"
-echo "   2. Open VS Code"
-echo "   3. Press Ctrl+Shift+P → 'Install from VSIX'"
-echo "   4. Select the .vsix file"
+echo "📍 Extension packaged: $VSIX_FILE"
+echo "📋 Next: run ./install-wsl.sh to install"

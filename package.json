@@ -1,40 +1,42 @@
 {
   "name": "lmstudio-chat",
   "displayName": "LM Studio Chat",
-  "description": "Chat sidebar for LM Studio local API",
+  "description": "Chat participant for LM Studio local API",
   "publisher": "builderall",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/builderall/vscode-lmstudio-extension"
   },
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.93.0"
   },
   "categories": [
-    "Other"
+    "Chat"
+  ],
+  "extensionDependencies": [
+    "github.copilot-chat"
   ],
   "activationEvents": [
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "lmstudio-chat.participant",
+        "name": "lmstudio",
+        "fullName": "LM Studio",
+        "description": "Chat with your local LM Studio models",
+        "isSticky": true
+      }
+    ],
     "commands": [
       {
         "command": "lmstudio-chat.open",
         "title": "Open LM Studio Chat"
       }
     ],
-    "views": {
-      "explorer": [
-        {
-          "id": "lmstudio-chat",
-          "name": "LM Studio Chat",
-          "type": "webview",
-          "contextualTitle": "LM Studio Chat"
-        }
-      ]
-    },
     "configuration": {
       "title": "LM Studio",
       "properties": {
@@ -66,7 +68,7 @@
   },
   "devDependencies": {
     "@types/node": "16.x",
-    "@types/vscode": "^1.70.0",
+    "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "eslint": "^8.20.0",
