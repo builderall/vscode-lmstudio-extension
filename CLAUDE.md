@@ -38,6 +38,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - **v0.0.4**: Async file reads (`vscode.workspace.fs`), configurable temperature & request timeout, `response.body` null guard, config caching per request, graceful deactivation abort, timeout error handling
 - **v0.0.5**: `/review` slash command with workspace-wide file discovery (`vscode.workspace.findFiles`), rolling timeout that resets on each SSE chunk (prevents killing long streams), leftover SSE buffer processing, single config read per request, `@types/node` bumped to 18.x, `vsce` moved to devDependencies
 - **v0.0.6**: `/review` diagnostic output (shows context size before sending), `/review` auto-extends timeout to 3 minutes minimum (large codebase context needs more time for first token), SSE error event handling in `parseSSEChunk` (surfaces LM Studio errors like context overflow instead of silently discarding them)
+- **v0.0.7**: Fix AbortController race condition (abort previous in-flight request before starting a new one)
 
 ## Build & Install
 

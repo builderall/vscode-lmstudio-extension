@@ -64,6 +64,9 @@ class LMStudioService {
     const config = cfg || this.getConfig();
     const model = await this.resolveModel(config);
 
+    // Abort any in-flight request before starting a new one
+    this.activeAbortController?.abort();
+
     const abortController = new AbortController();
     this.activeAbortController = abortController;
     token.onCancellationRequested(() => abortController.abort());
