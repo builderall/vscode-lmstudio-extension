@@ -142,12 +142,14 @@ describe('formatConfigOutput', () => {
       maxHistoryTurns: 20,
       temperature: 0.7,
       requestTimeout: 60000,
+      contextLength: 32768,
     });
     assert.ok(result.includes('http://localhost:1234/v1'));
     assert.ok(result.includes('llama-3'));
     assert.ok(result.includes('Be helpful'));
     assert.ok(result.includes('10,000'));
     assert.ok(result.includes('20'));
+    assert.ok(result.includes('32,768'));
   });
 
   it('should show auto-detect when model is empty', () => {
@@ -159,6 +161,7 @@ describe('formatConfigOutput', () => {
       maxHistoryTurns: 20,
       temperature: 0.7,
       requestTimeout: 60000,
+      contextLength: 32768,
     });
     assert.ok(result.includes('(auto-detect)'));
   });
@@ -173,6 +176,7 @@ describe('formatConfigOutput', () => {
       maxHistoryTurns: 20,
       temperature: 0.7,
       requestTimeout: 60000,
+      contextLength: 32768,
     });
     assert.ok(result.includes('...'));
     assert.ok(!result.includes('a'.repeat(100)));
@@ -187,6 +191,7 @@ describe('formatConfigOutput', () => {
       maxHistoryTurns: 20,
       temperature: 0.7,
       requestTimeout: 60000,
+      contextLength: 32768,
     });
     assert.ok(result.includes('(none)'));
   });

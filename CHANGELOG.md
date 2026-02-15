@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.13] - 2026-02-15
+
+### Added
+- `lmstudio.contextLength` setting (default: 32768) to configure model context window
+- `/context` slash command to reload the loaded model with the configured context length
+- Auto-sets context length on extension activation (fire-and-forget, won't block if LM Studio isn't running)
+- Context length shown in `/config` output
+
 ## [0.0.12] - 2026-02-15
 
 ### Added

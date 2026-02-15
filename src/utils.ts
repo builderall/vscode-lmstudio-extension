@@ -66,6 +66,7 @@ export function formatConfigOutput(config: {
   maxHistoryTurns: number;
   temperature: number;
   requestTimeout: number;
+  contextLength: number;
 }): string {
   const model = config.model || '(auto-detect)';
   const systemPrompt = config.systemPrompt || '(none)';
@@ -79,6 +80,7 @@ export function formatConfigOutput(config: {
     `| Max File Size | ${config.maxFileSize.toLocaleString()} chars |\n` +
     `| Max History Turns | ${config.maxHistoryTurns} |\n` +
     `| Temperature | ${config.temperature} |\n` +
+    `| Context Length | ${config.contextLength.toLocaleString()} tokens |\n` +
     `| Request Timeout | ${(config.requestTimeout / 1000).toFixed(0)}s |\n\n` +
     `*Edit in Settings: \`Ctrl+,\` → search "lmstudio"*`
   );

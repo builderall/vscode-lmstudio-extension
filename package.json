@@ -3,7 +3,7 @@
   "displayName": "LM Studio Chat",
   "description": "Chat participant for LM Studio local API",
   "publisher": "builderall",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "icon": "icon.png",
   "license": "Apache-2.0",
   "keywords": [
@@ -52,6 +52,10 @@
           {
             "name": "review",
             "description": "Review workspace code with full project context"
+          },
+          {
+            "name": "context",
+            "description": "Set context length for the loaded model"
           }
         ]
       }
@@ -113,6 +117,12 @@
           "default": 60000,
           "minimum": 5000,
           "description": "Request timeout in milliseconds (default: 60000 = 60 seconds)"
+        },
+        "lmstudio.contextLength": {
+          "type": "number",
+          "default": 32768,
+          "minimum": 1024,
+          "description": "Context length (tokens) to set when loading a model in LM Studio (default: 32768)"
         },
         "lmstudio.reviewInclude": {
           "type": "string",

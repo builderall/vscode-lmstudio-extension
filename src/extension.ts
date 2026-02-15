@@ -11,6 +11,7 @@ interface LMStudioConfig {
   temperature: number;
   maxTokens: number;
   requestTimeout: number;
+  contextLength: number;
   reviewInclude: string;
   reviewExclude: string;
 }
@@ -30,6 +31,7 @@ class LMStudioService {
       temperature: config.get<number>('temperature') ?? 0.7,
       maxTokens: config.get<number>('maxTokens') || 4096,
       requestTimeout: config.get<number>('requestTimeout') || 60000,
+      contextLength: config.get<number>('contextLength') || 32768,
       reviewInclude: config.get<string>('reviewInclude') || '**/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}',
       reviewExclude: config.get<string>('reviewExclude') || '{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/test/**,**/tests/**,**/__tests__/**,**/*.test.*,**/*.spec.*,**/*.d.ts,**/*.min.js,**/*.map}',
     };
@@ -48,7 +50,7 @@ class LMStudioService {
     return json.data || [];
   }
 
-  private async resolveModel(cfg: LMStudioConfig): Promise<string> {
+  async resolveModel(cfg: LMStudioConfig): Promise<string> {
     if (cfg.model) { return cfg.model; }
 
     // Auto-detect: pick the first available model
@@ -270,6 +272,42 @@ class LMStudioService {
     return { context, reviewFiles, contextFiles, testFiles };
   }
 
+  async loadModelWithContext(
+    model: string,
+    contextLength: number,
+    cfg?: LMStudioConfig
+  ): Promise<{ status: string; context_length?: number }> {
+    const { apiUrl, apiKey, requestTimeout } = cfg || this.getConfig();
+    // Derive LM Studio native API base from OpenAI-compat apiUrl
+    // e.g. "http://localhost:1234/v1" → "http://localhost:1234/api/v1"
+    const base = apiUrl.replace(/\/v1\/?$/, '');
+    const response = await fetch(`${base}/api/v1/models/load`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        context_length: contextLength,
+        echo_load_config: true
+      }),
+      signal: AbortSignal.timeout(Math.max(requestTimeout, 120000)) // at least 2 min for model loading
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to load model: ${response.status} - ${errorText}`);
+    }
+    const json = await response.json() as {
+      status: string;
+      load_config?: { context_length?: number };
+    };
+    return {
+      status: json.status,
+      context_length: json.load_config?.context_length
+    };
+  }
+
   abort(): void {
     this.activeAbortController?.abort();
     this.activeAbortController = null;
@@ -317,6 +355,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
       if (request.command === 'config') {
         return handleConfigCommand(cfg, stream);
+      }
+      if (request.command === 'context') {
+        return handleContextCommand(service, cfg, stream);
       }
       if (request.command === 'review') {
         // Use lower temperature for analytical review, allow longer output, and extend timeout
@@ -375,6 +416,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Abort in-flight requests on deactivation
   context.subscriptions.push({ dispose: () => service.abort() });
+
+  // Auto-set context length on activation (fire-and-forget)
+  const cfg = service.getConfig();
+  service.resolveModel(cfg).then(model => {
+    return service.loadModelWithContext(model, cfg.contextLength, cfg);
+  }).catch(() => {
+    // Silently ignore — LM Studio may not be running yet
+  });
 }
 
 async function handleModelsCommand(
@@ -405,7 +454,36 @@ async function handleConfigCommand(
     maxHistoryTurns: cfg.maxHistoryTurns,
     temperature: cfg.temperature,
     requestTimeout: cfg.requestTimeout,
+    contextLength: cfg.contextLength,
   }));
+}
+
+async function handleContextCommand(
+  service: LMStudioService,
+  cfg: LMStudioConfig,
+  stream: vscode.ChatResponseStream
+): Promise<void> {
+  stream.progress('Loading model with context length ' + cfg.contextLength.toLocaleString() + '...');
+  try {
+    const model = await service.resolveModel(cfg);
+    const result = await service.loadModelWithContext(model, cfg.contextLength, cfg);
+    const applied = result.context_length?.toLocaleString() || cfg.contextLength.toLocaleString();
+    stream.markdown(
+      `**Model loaded successfully.**\n\n` +
+      `| Setting | Value |\n` +
+      `|---------|-------|\n` +
+      `| Model | \`${model}\` |\n` +
+      `| Context Length | ${applied} tokens |\n` +
+      `| Status | ${result.status} |\n`
+    );
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    if (msg.includes('fetch') || msg.includes('ECONNREFUSED')) {
+      stream.markdown(`**Cannot connect to LM Studio.** Make sure it's running and the API server is enabled.`);
+    } else {
+      stream.markdown(`**Failed to set context length:** ${msg}`);
+    }
+  }
 }
 
 async function handleReviewCommand(

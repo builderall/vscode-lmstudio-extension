@@ -29,7 +29,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - File context truncated at `maxFileSize` chars to prevent token overflow
 - Configurable system prompt sent with every request
 - Auto-detects loaded model from `/v1/models` if `lmstudio.model` is empty
-- Slash commands: `/models` (list loaded models), `/config` (show settings), `/review` (review workspace code with full context)
+- Slash commands: `/models` (list loaded models), `/config` (show settings), `/review` (review workspace code with full context), `/context` (reload model with configured context length)
 - Configurable temperature for model sampling
 - Request timeout with user-friendly error messages
 - Async file reads via `vscode.workspace.fs.readFile` (non-blocking)
@@ -49,6 +49,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - **v0.0.10**: Normalize line endings to LF across codebase, add `.gitattributes` for consistent EOL, add `push.sh` convenience script
 - **v0.0.11**: Rework `/review` anti-hallucination prompt for streaming — added "verify before writing" checklist (model must silently confirm exact line, specific trigger scenario, and correctness before emitting any finding), "never retract" rule (if not 100% certain, don't start writing it), mandatory verbatim code quoting, "no narration" output format rule (suppress analysis walkthrough, only output findings or "No issues found.")
 - **v0.0.12**: Marketplace readiness — Apache 2.0 license, PNG icon (`icon.png`), keywords, `icon`/`license` fields in `package.json`
+- **v0.0.13**: Configurable context length — `lmstudio.contextLength` setting (default 32768), `/context` slash command to reload model with specified context length via LM Studio's `POST /api/v1/models/load`, auto-sets context length on extension activation (fire-and-forget)
 
 ## Build & Install
 
@@ -65,8 +66,10 @@ Or press F5 in VS Code for Extension Development Host.
 ### Pushing to GitHub (WSL)
 
 ```bash
-./push.sh            # Push branch only
-./push.sh --tags     # Push branch + all tags
+./push.sh                  # Push branch only
+./push.sh --tags           # Push branch + all tags
+./push.sh --force          # Force push branch
+./push.sh --tags --force   # Force push branch + all tags
 ```
 
 Uses `gh` CLI token for authentication (no SSH keys needed). Requires `gh auth login` first.
@@ -75,10 +78,8 @@ Uses `gh` CLI token for authentication (no SSH keys needed). Requires `gh auth l
 
 - Extension won't activate without GitHub Copilot Chat installed (`extensionDependencies`)
 - `@lmstudio` appears as a participant mention inside the Chat panel, NOT as a separate tab
-- Duplicate extension installs (e.g., `undefined_publisher.lmstudio-chat` + `builderall.lmstudio-chat`) can prevent activation — install scripts now clean these up
-- WSL: LM Studio on Windows requires mirrored networking or port proxy for `localhost` to work from WSL
+- WSL: LM Studio on Windows requires mirrored networking or port proxy for `localhost` to work from WSL (use `setup-wsl-networking.ps1`)
 - `lmstudio.model` can be left empty for auto-detect, but LM Studio must have a model loaded
-- `/review` requires sufficient context length in LM Studio — default 4096 is too small; set to 32768+ in LM Studio model settings
 
 ## Development Hardware
 
