@@ -1,6 +1,6 @@
 #!/bin/bash
 # Push to GitHub from WSL using gh CLI token
-# Usage: ./push.sh [--tags]
+# Usage: ./push.sh [--tags] [--force]
 
 set -e
 
@@ -24,14 +24,29 @@ fi
 # Temporarily set remote URL with token
 git remote set-url "$REMOTE" "https://builderall:${TOKEN}@github.com/builderall/vscode-lmstudio-extension.git"
 
-# Push branch (and tags if --tags flag is passed)
-if [ "$1" = "--tags" ]; then
-  echo "Pushing branch '$BRANCH' + tags to $REMOTE..."
-  git push -u "$REMOTE" "$BRANCH" --tags
-else
-  echo "Pushing branch '$BRANCH' to $REMOTE..."
-  git push -u "$REMOTE" "$BRANCH"
+# Parse flags
+PUSH_TAGS=false
+PUSH_FORCE=false
+for arg in "$@"; do
+  case "$arg" in
+    --tags) PUSH_TAGS=true ;;
+    --force) PUSH_FORCE=true ;;
+  esac
+done
+
+# Build push command
+PUSH_CMD="git push -u $REMOTE $BRANCH"
+if [ "$PUSH_TAGS" = true ]; then
+  PUSH_CMD="$PUSH_CMD --tags"
 fi
+if [ "$PUSH_FORCE" = true ]; then
+  PUSH_CMD="$PUSH_CMD --force"
+  echo "WARNING: Force pushing branch '$BRANCH'${PUSH_TAGS:+ + tags} to $REMOTE..."
+else
+  echo "Pushing branch '$BRANCH'${PUSH_TAGS:+ + tags} to $REMOTE..."
+fi
+
+$PUSH_CMD
 
 # Remove token from remote URL
 git remote set-url "$REMOTE" "$REPO_URL"

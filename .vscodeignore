@@ -5,6 +5,8 @@ out/test/**
 node_modules/**
 CLAUDE.md
 REQUIREMENTS.md
+PUBLISHING.md
+push.sh
 build.sh
 build.bat
 install.sh

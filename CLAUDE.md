@@ -12,7 +12,12 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - `package.json` — Extension manifest with `chatParticipants` contribution, `extensionDependencies` on `github.copilot-chat`, min VS Code 1.93.0
 - `build.sh` / `build.bat` — Compile + package VSIX (dynamically detects output filename)
 - `install.sh` / `install.bat` — Uninstalls ALL old lmstudio extensions first, then installs latest VSIX by date
+- `push.sh` — Push to GitHub from WSL using `gh` CLI token (`./push.sh` or `./push.sh --tags`)
 - `setup-wsl-networking.ps1` — Enables WSL mirrored networking so `localhost` reaches Windows host
+- `CHANGELOG.md` — Version history for VS Code Marketplace "Changelog" tab
+- `PUBLISHING.md` — Step-by-step instructions for publishing to VS Code Marketplace
+- `LICENSE` — Apache 2.0 license
+- `icon.png` — 128x128 PNG icon for marketplace listing
 
 ## Architecture
 
@@ -56,6 +61,15 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 ```
 
 Or press F5 in VS Code for Extension Development Host.
+
+### Pushing to GitHub (WSL)
+
+```bash
+./push.sh            # Push branch only
+./push.sh --tags     # Push branch + all tags
+```
+
+Uses `gh` CLI token for authentication (no SSH keys needed). Requires `gh auth login` first.
 
 ## Known Issues & Gotchas
 
