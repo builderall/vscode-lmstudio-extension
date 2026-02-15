@@ -180,32 +180,94 @@ class LMStudioService {
     return context ? '**Files included in context:**' + context : '';
   }
 
-  async buildWorkspaceContext(cfg: LMStudioConfig): Promise<{ context: string; fileNames: string[] }> {
+  async buildWorkspaceContext(cfg: LMStudioConfig): Promise<{
+    context: string;
+    reviewFiles: string[];
+    contextFiles: string[];
+    testFiles: string[];
+  }> {
+    const empty = { context: '', reviewFiles: [], contextFiles: [], testFiles: [] };
+
+    // 1. Gather source files to review
     const uris = await vscode.workspace.findFiles(cfg.reviewInclude, cfg.reviewExclude, 50);
 
-    if (uris.length === 0) { return { context: '', fileNames: [] }; }
+    if (uris.length === 0) { return empty; }
 
     // Deduplicate and sort by path for stable ordering
     const uniqueFiles = Array.from(
       new Map(uris.map(f => [f.fsPath, f])).values()
     ).sort((a, b) => a.fsPath.localeCompare(b.fsPath));
 
-    let context = '';
-    const fileNames: string[] = [];
+    let reviewContext = '';
+    const reviewFiles: string[] = [];
     for (const file of uniqueFiles) {
       try {
         const bytes = await vscode.workspace.fs.readFile(file);
         let content = Buffer.from(bytes).toString('utf-8');
         const relPath = vscode.workspace.asRelativePath(file);
         content = truncateContent(content, cfg.maxFileSize);
-        context += `\n\n### File: ${relPath}\n\`\`\`\n${content}\n\`\`\``;
-        fileNames.push(relPath);
+        reviewContext += `\n\n### File: ${relPath}\n\`\`\`\n${content}\n\`\`\``;
+        reviewFiles.push(relPath);
       } catch {
         // Skip unreadable files
       }
     }
 
-    return { context: context ? `**Workspace files (${fileNames.length}):**` + context : '', fileNames };
+    // 2. Gather project context files (not reviewed, just for understanding)
+    let projectContext = '';
+    const contextFiles: string[] = [];
+    const projectFiles = ['CLAUDE.md', 'README.md', 'package.json'];
+    for (const name of projectFiles) {
+      const found = await vscode.workspace.findFiles(name, undefined, 1);
+      if (found.length > 0) {
+        try {
+          const bytes = await vscode.workspace.fs.readFile(found[0]);
+          let content = Buffer.from(bytes).toString('utf-8');
+          content = truncateContent(content, cfg.maxFileSize);
+          projectContext += `\n\n### Project file: ${name}\n\`\`\`\n${content}\n\`\`\``;
+          contextFiles.push(name);
+        } catch {
+          // Skip unreadable files
+        }
+      }
+    }
+
+    // 3. Gather test files (not reviewed, but provided as reference)
+    let testContext = '';
+    const testFiles: string[] = [];
+    const testPatterns = '{**/test/**,**/tests/**,**/__tests__/**,**/*.test.*,**/*.spec.*}';
+    const testExclude = '{**/node_modules/**,**/out/**,**/dist/**,**/build/**}';
+    const testUris = await vscode.workspace.findFiles(testPatterns, testExclude, 20);
+    for (const file of testUris) {
+      // Only include test files matching the same extensions as reviewInclude
+      const ext = file.fsPath.split('.').pop() || '';
+      const reviewExts = ['ts', 'tsx', 'js', 'jsx', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'hpp', 'cs', 'rb', 'php', 'swift', 'kt'];
+      if (!reviewExts.includes(ext)) { continue; }
+      try {
+        const bytes = await vscode.workspace.fs.readFile(file);
+        let content = Buffer.from(bytes).toString('utf-8');
+        const relPath = vscode.workspace.asRelativePath(file);
+        content = truncateContent(content, cfg.maxFileSize);
+        testContext += `\n\n### Test file (reference only — do not review): ${relPath}\n\`\`\`\n${content}\n\`\`\``;
+        testFiles.push(relPath);
+      } catch {
+        // Skip unreadable files
+      }
+    }
+
+    // Assemble full context
+    let context = '';
+    if (reviewContext) {
+      context += `**Files to review (${reviewFiles.length}):**` + reviewContext;
+    }
+    if (projectContext) {
+      context += `\n\n**Project context (do not review — use for understanding only):**` + projectContext;
+    }
+    if (testContext) {
+      context += `\n\n**Existing tests (do not review — check these before claiming test gaps):**` + testContext;
+    }
+
+    return { context, reviewFiles, contextFiles, testFiles };
   }
 
   abort(): void {
@@ -354,15 +416,23 @@ async function handleReviewCommand(
 ): Promise<void> {
   stream.progress('Scanning workspace files...');
   try {
-    const { context: fileContext, fileNames } = await service.buildWorkspaceContext(cfg);
+    const { context: fileContext, reviewFiles, contextFiles, testFiles } = await service.buildWorkspaceContext(cfg);
     if (!fileContext) {
       stream.markdown('**No files found to review.** Make sure your workspace contains source files.');
       return;
     }
 
     const contextSize = fileContext.length;
-    const fileList = fileNames.map(f => `- \`${f}\``).join('\n');
-    stream.markdown(`*Found ${fileNames.length} files (${(contextSize / 1024).toFixed(1)} KB of context):*\n${fileList}\n\n*Sending to LM Studio for review — this may take a minute or two...*\n\n`);
+    const reviewList = reviewFiles.map((f: string) => `- \`${f}\``).join('\n');
+    let diagnostic = `*Reviewing ${reviewFiles.length} files (${(contextSize / 1024).toFixed(1)} KB total context):*\n${reviewList}`;
+    if (contextFiles.length > 0) {
+      diagnostic += `\n\n*Project context: ${contextFiles.join(', ')}*`;
+    }
+    if (testFiles.length > 0) {
+      diagnostic += `\n*Test reference: ${testFiles.join(', ')}*`;
+    }
+    diagnostic += `\n\n*Sending to LM Studio for review — this may take a minute or two...*\n\n`;
+    stream.markdown(diagnostic);
     stream.progress('Waiting for LM Studio to process...');
 
     const messages: Array<{ role: string; content: string }> = [];
@@ -371,31 +441,19 @@ async function handleReviewCommand(
     }
     messages.push({
       role: 'user',
-      content: `Perform a thorough, senior-engineer-level code review of the following codebase. Be specific — reference exact file names, function names, and line-level details. Do NOT give generic advice.
+      content: `Review the following codebase. Rules:
 
-Structure your review with these sections:
+1. **Only report issues you can directly verify from the code provided.** Do not speculate about what "might" happen or what "could" be problematic. If you cannot point to the exact line causing the issue, do not report it.
+2. **Do not report missing tests for code that has tests in the provided context.** Check the test/reference files before claiming test gaps.
+3. **Do not suggest architectural changes unless there is a concrete bug or measurable problem.** "Could be cleaner" or "consider using X pattern" are not findings.
+4. **Do not pad.** If there are no real issues, say so. A short review with zero findings is better than a long review with fabricated ones.
 
-## 1. Critical Issues (Bugs & Security)
-Identify actual bugs, race conditions, unhandled edge cases, security vulnerabilities (injection, data leaks, unsafe defaults), and error handling gaps. For each issue, show the problematic code snippet and explain the concrete impact.
+For each real finding:
+- Rate severity: 🔴 Bug/security issue, 🟡 Warning, 🔵 Minor suggestion
+- Show the exact code snippet and file name
+- Explain the concrete impact (what breaks, what data is lost, what fails)
 
-## 2. Architecture & Design
-Evaluate separation of concerns, dependency management, module boundaries, and API design. Flag any tight coupling, circular dependencies, or abstraction leaks. Suggest specific refactors only where they provide clear value.
-
-## 3. Error Handling & Resilience
-Analyze error propagation, recovery strategies, timeout handling, and failure modes. Are errors swallowed silently? Are retries appropriate? Are error messages actionable for users?
-
-## 4. Performance & Resource Management
-Identify memory leaks, unnecessary allocations, missing cleanup, blocking operations, N+1 patterns, or unbounded data structures.
-
-## 5. Type Safety & API Contracts
-Check for unsafe type assertions, missing null checks, overly permissive types (any), and places where the type system could catch bugs but doesn't.
-
-## 6. Testing Gaps
-Based on the code complexity, identify specific untested scenarios, missing edge case coverage, and areas where tests would have the highest impact.
-
-For each finding, rate severity as 🔴 Critical, 🟡 Warning, or 🔵 Suggestion.
-
-Skip sections that have no meaningful findings — do not pad with filler.
+Do not use fixed section headers — just report what you find, grouped naturally.
 
 ` + fileContext
     });
