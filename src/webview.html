@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LM Studio Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+    }
+    
+    #chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .message {
+      display: flex;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    
+    .message.user {
+      justify-content: flex-end;
+    }
+    
+    .message-content {
+      max-width: 85%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      word-wrap: break-word;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+    
+    .message.user .message-content {
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
+    
+    .message.assistant .message-content {
+      background-color: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-editor-lineHighlightBackground);
+    }
+
+    .message.assistant .message-content h1,
+    .message.assistant .message-content h2,
+    .message.assistant .message-content h3 {
+      margin: 8px 0 4px 0;
+      color: var(--vscode-editor-foreground);
+    }
+
+    .message.assistant .message-content h1 { font-size: 1.3em; font-weight: bold; }
+    .message.assistant .message-content h2 { font-size: 1.2em; font-weight: bold; }
+    .message.assistant .message-content h3 { font-size: 1.1em; font-weight: bold; }
+
+    .message.assistant .message-content code {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
+    .message.assistant .message-content pre {
+      background-color: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid var(--vscode-editor-lineHighlightBackground);
+      padding: 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    .message.assistant .message-content pre code {
+      background-color: transparent;
+      padding: 0;
+      font-family: monospace;
+      line-height: 1.4;
+    }
+
+    .message.assistant .message-content ul,
+    .message.assistant .message-content ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .message.assistant .message-content li {
+      margin: 4px 0;
+    }
+    
+    .message.error .message-content {
+      background-color: var(--vscode-inputValidation-errorBackground);
+      color: var(--vscode-inputValidation-errorForeground);
+      border: 1px solid var(--vscode-inputValidation-errorBorder);
+    }
+
+    #file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      font-size: 12px;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px;
+    }
+
+    .file-item button {
+      background: none;
+      border: none;
+      color: var(--vscode-errorForeground);
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 11px;
+    }
+
+    #input-container {
+      padding: 12px;
+      border-top: 1px solid var(--vscode-editor-lineHighlightBackground);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #input-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    #message-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      font-family: inherit;
+      font-size: 13px;
+    }
+    
+    #message-input:focus {
+      outline: none;
+      border-color: var(--vscode-focusBorder);
+    }
+
+    #button-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    #send-button, #add-files-button, #clear-files-button {
+      padding: 8px 12px;
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    
+    #send-button:hover, #add-files-button:hover, #clear-files-button:hover {
+      background-color: var(--vscode-button-hoverBackground);
+    }
+    
+    #send-button:disabled, #add-files-button:disabled, #clear-files-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #clear-files-button {
+      background-color: var(--vscode-errorForeground);
+      color: white;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin: 0 2px;
+      background-color: currentColor;
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container"></div>
+  <div id="input-container">
+    <div id="file-info"></div>
+    <div id="input-row">
+      <input type="text" id="message-input" placeholder="Type a message..." />
+      <button id="send-button">Send</button>
+    </div>
+    <div id="button-row">
+      <button id="add-files-button">📁 Add Files</button>
+      <button id="clear-files-button" style="display: none;">Clear Files</button>
+    </div>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const addFilesButton = document.getElementById('add-files-button');
+    const clearFilesButton = document.getElementById('clear-files-button');
+    const fileInfo = document.getElementById('file-info');
+    
+    let messages = [];
+    let selectedFiles = [];
+    let currentFile = null;
+    
+    function updateFileDisplay() {
+      fileInfo.innerHTML = '';
+      const allFiles = currentFile ? [currentFile, ...selectedFiles.filter(f => f !== currentFile)] : selectedFiles;
+      const uniqueFiles = [...new Set(allFiles)];
+      
+      if (uniqueFiles.length === 0) {
+        fileInfo.style.display = 'none';
+        clearFilesButton.style.display = 'none';
+        return;
+      }
+      
+      fileInfo.style.display = 'flex';
+      clearFilesButton.style.display = 'inline-block';
+      
+      uniqueFiles.forEach((file, index) => {
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'file-item';
+        const label = index === 0 && currentFile === file ? '📄 Current: ' : '';
+        fileDiv.innerHTML = '<span>' + label + file + '</span><button onclick="removeFile(' + index + ')">✕</button>';
+        fileInfo.appendChild(fileDiv);
+      });
+    }
+    
+    window.removeFile = function(index) {
+      const allFiles = currentFile ? [currentFile, ...selectedFiles.filter(f => f !== currentFile)] : selectedFiles;
+      const uniqueFiles = [...new Set(allFiles)];
+      const fileToRemove = uniqueFiles[index];
+      
+      if (fileToRemove === currentFile) {
+        currentFile = null;
+      } else {
+        selectedFiles = selectedFiles.filter(f => f !== fileToRemove);
+      }
+      
+      updateFileDisplay();
+    };
+
+    function formatText(text) {
+      let formatted = text;
+      
+      formatted = formatted.replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      formatted = formatted.replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>');
+      
+      formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      
+      formatted = formatted.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      formatted = formatted.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      formatted = formatted.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      
+      formatted = formatted.replace(/\n/g, '<br>');
+      
+      return formatted;
+    }
+    
+    function addMessage(role, content) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message ' + role;
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      
+      if (role === 'assistant') {
+        contentDiv.innerHTML = formatText(content);
+      } else {
+        contentDiv.textContent = content;
+      }
+      
+      messageDiv.appendChild(contentDiv);
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      
+      messages.push({ role: role, content: content });
+    }
+    
+    function addLoadingMessage() {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant';
+      messageDiv.id = 'loading-message';
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.innerHTML = '<span class="loading"></span><span class="loading"></span><span class="loading"></span>';
+      
+      messageDiv.appendChild(contentDiv);
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    function removeLoadingMessage() {
+      const loadingMsg = document.getElementById('loading-message');
+      if (loadingMsg) {
+        loadingMsg.remove();
+      }
+    }
+    
+    addFilesButton.addEventListener('click', () => {
+      vscode.postMessage({ command: 'selectFiles' });
+    });
+    
+    clearFilesButton.addEventListener('click', () => {
+      selectedFiles = [];
+      currentFile = null;
+      vscode.postMessage({ command: 'clearFiles' });
+      updateFileDisplay();
+    });
+    
+    sendButton.addEventListener('click', async () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      
+      addMessage('user', text);
+      messageInput.value = '';
+      sendButton.disabled = true;
+      messageInput.disabled = true;
+      addFilesButton.disabled = true;
+      
+      addLoadingMessage();
+      
+      vscode.postMessage({
+        command: 'sendMessage',
+        messages: [...messages, { role: 'user', content: text }]
+      });
+    });
+    
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendButton.click();
+      }
+    });
+    
+    window.addEventListener('message', (event) => {
+      const message = event.data;
+      
+      if (message.command === 'updateFiles') {
+        currentFile = message.currentFile;
+        selectedFiles = message.selectedFiles || [];
+        updateFileDisplay();
+      } else if (message.command === 'receiveMessage') {
+        removeLoadingMessage();
+        sendButton.disabled = false;
+        messageInput.disabled = false;
+        addFilesButton.disabled = false;
+        messageInput.focus();
+        addMessage('assistant', message.content);
+      } else if (message.command === 'error') {
+        removeLoadingMessage();
+        sendButton.disabled = false;
+        messageInput.disabled = false;
+        addFilesButton.disabled = false;
+        messageInput.focus();
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message error';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = 'Error: ' + message.message;
+        
+        messageDiv.appendChild(contentDiv);
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+    
+    messageInput.focus();
+  </script>
+</body>
+</html>

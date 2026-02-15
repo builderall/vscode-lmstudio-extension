@@ -1,0 +1,77 @@
+{
+  "name": "lmstudio-chat",
+  "displayName": "LM Studio Chat",
+  "description": "Chat sidebar for LM Studio local API",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/vscode-lmstudio-extension"
+  },
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lmstudio-chat.open",
+        "title": "Open LM Studio Chat"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "lmstudio-chat",
+          "name": "LM Studio Chat",
+          "type": "webview",
+          "contextualTitle": "LM Studio Chat"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LM Studio",
+      "properties": {
+        "lmstudio.apiBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:1234/v1",
+          "description": "API base URL for LM Studio"
+        },
+        "lmstudio.apiKey": {
+          "type": "string",
+          "default": "not-needed",
+          "description": "API key for LM Studio"
+        },
+        "lmstudio.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model name to use in LM Studio"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.70.0",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "eslint": "^8.20.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "vsce": "^2.15.0"
+  }
+}
