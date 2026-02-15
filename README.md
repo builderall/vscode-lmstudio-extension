@@ -21,7 +21,7 @@ chmod +x build.sh install.sh
 ./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.2.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.3.vsix`
 
 **Development mode:**
 
@@ -36,7 +36,10 @@ npm install && npm run compile
 |---------|---------|-------------|
 | `lmstudio.apiBaseUrl` | `http://localhost:1234/v1` | LM Studio API endpoint |
 | `lmstudio.apiKey` | `not-needed` | API key |
-| `lmstudio.model` | _(empty)_ | Model name (e.g. `mistral`, `neural-chat`) |
+| `lmstudio.model` | _(empty — auto-detects)_ | Model name (leave empty to auto-detect from LM Studio) |
+| `lmstudio.systemPrompt` | _(coding assistant prompt)_ | System prompt sent with every request |
+| `lmstudio.maxFileSize` | `10000` | Max characters per file included in context |
+| `lmstudio.maxHistoryTurns` | `20` | Max conversation turns to include in history |
 
 ## Usage
 
@@ -46,6 +49,21 @@ npm install && npm run compile
 4. Type your message and press Enter — responses stream in real-time
 5. Your current editor file is automatically included as context
 6. To add more files, use `#file:path/to/file` in your message
+
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `@lmstudio /models` | List all models currently loaded in LM Studio |
+| `@lmstudio /config` | Show current extension configuration |
+
+## Testing
+
+```bash
+npm test
+```
+
+Runs 25 unit tests covering SSE parsing, content truncation, history slicing, and command output formatting.
 
 ## WSL Note
 

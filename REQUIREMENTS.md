@@ -19,9 +19,13 @@ VS Code Chat panel participant (`@lmstudio`) that connects to LM Studio's local 
 - Auto-includes the current active editor file as context
 - Additional file references via `#file:` syntax in the chat input
 - Native markdown rendering (code blocks, headers, bold, lists)
-- Conversation history maintained automatically by the Chat panel
+- Conversation history maintained automatically by the Chat panel (capped at configurable max turns)
 - Cancellation support — stop responses mid-stream
 - Connection error handling with WSL-specific guidance
+- Configurable system prompt sent with every request
+- Auto-detect model from LM Studio's `/v1/models` when no model is configured
+- File context truncation to prevent token overflow
+- Slash commands: `/models` (list loaded models), `/config` (show settings)
 
 ## Configuration
 
@@ -29,16 +33,27 @@ VS Code Chat panel participant (`@lmstudio`) that connects to LM Studio's local 
 |---------|---------|-------------|
 | `lmstudio.apiBaseUrl` | `http://localhost:1234/v1` | LM Studio API endpoint |
 | `lmstudio.apiKey` | `not-needed` | API key |
-| `lmstudio.model` | _(empty)_ | Model name (e.g. `mistral`, `neural-chat`) |
+| `lmstudio.model` | _(empty — auto-detects)_ | Model name (leave empty to auto-detect) |
+| `lmstudio.systemPrompt` | _(coding assistant prompt)_ | System prompt sent with every request |
+| `lmstudio.maxFileSize` | `10000` | Max characters per file in context |
+| `lmstudio.maxHistoryTurns` | `20` | Max conversation turns in history |
 
 ## Build & Install
 
 ```bash
 npm install && npm run compile && npx vsce package
-code --install-extension lmstudio-chat-0.0.2.vsix
+code --install-extension lmstudio-chat-0.0.3.vsix
 ```
 
 Or use the provided scripts: `build.sh` / `build.bat` and `install.sh` / `install.bat`.
+
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests (mocha + assert) cover pure utility functions extracted to `src/utils.ts`: SSE parsing, content truncation, history slicing, and command output formatting. Tests run without the VS Code extension host.
 
 ## WSL Setup
 

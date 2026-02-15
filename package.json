@@ -3,7 +3,7 @@
   "displayName": "LM Studio Chat",
   "description": "Chat participant for LM Studio local API",
   "publisher": "builderall",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/builderall/vscode-lmstudio-extension"
@@ -28,7 +28,17 @@
         "name": "lmstudio",
         "fullName": "LM Studio",
         "description": "Chat with your local LM Studio models",
-        "isSticky": true
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "models",
+            "description": "List available models in LM Studio"
+          },
+          {
+            "name": "config",
+            "description": "Show current LM Studio configuration"
+          }
+        ]
       }
     ],
     "commands": [
@@ -53,7 +63,22 @@
         "lmstudio.model": {
           "type": "string",
           "default": "",
-          "description": "Model name to use in LM Studio"
+          "description": "Model name to use in LM Studio (leave empty to auto-detect)"
+        },
+        "lmstudio.systemPrompt": {
+          "type": "string",
+          "default": "You are a helpful coding assistant. When code is provided as context, read it carefully and thoroughly before responding. Base your answers on the actual code, not assumptions.",
+          "description": "System prompt sent with every request"
+        },
+        "lmstudio.maxFileSize": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum number of characters to include per file in context"
+        },
+        "lmstudio.maxHistoryTurns": {
+          "type": "number",
+          "default": 20,
+          "description": "Maximum number of conversation turns to include in history"
         }
       }
     }
@@ -62,16 +87,18 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "pretest": "npm run compile",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "npm run compile && mocha out/test/**/*.test.js"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "16.x",
     "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "eslint": "^8.20.0",
+    "mocha": "^11.7.5",
     "typescript": "^4.7.4"
   },
   "dependencies": {
