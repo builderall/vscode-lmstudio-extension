@@ -130,6 +130,8 @@ describe('formatConfigOutput', () => {
       systemPrompt: 'Be helpful',
       maxFileSize: 10000,
       maxHistoryTurns: 20,
+      temperature: 0.7,
+      requestTimeout: 60000,
     });
     assert.ok(result.includes('http://localhost:1234/v1'));
     assert.ok(result.includes('llama-3'));
@@ -145,6 +147,8 @@ describe('formatConfigOutput', () => {
       systemPrompt: '',
       maxFileSize: 10000,
       maxHistoryTurns: 20,
+      temperature: 0.7,
+      requestTimeout: 60000,
     });
     assert.ok(result.includes('(auto-detect)'));
   });
@@ -157,6 +161,8 @@ describe('formatConfigOutput', () => {
       systemPrompt: longPrompt,
       maxFileSize: 10000,
       maxHistoryTurns: 20,
+      temperature: 0.7,
+      requestTimeout: 60000,
     });
     assert.ok(result.includes('...'));
     assert.ok(!result.includes('a'.repeat(100)));
@@ -169,6 +175,8 @@ describe('formatConfigOutput', () => {
       systemPrompt: '',
       maxFileSize: 10000,
       maxHistoryTurns: 20,
+      temperature: 0.7,
+      requestTimeout: 60000,
     });
     assert.ok(result.includes('(none)'));
   });

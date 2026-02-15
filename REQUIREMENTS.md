@@ -25,7 +25,12 @@ VS Code Chat panel participant (`@lmstudio`) that connects to LM Studio's local 
 - Configurable system prompt sent with every request
 - Auto-detect model from LM Studio's `/v1/models` when no model is configured
 - File context truncation to prevent token overflow
-- Slash commands: `/models` (list loaded models), `/config` (show settings)
+- Slash commands: `/models` (list loaded models), `/config` (show settings), `/review` (review workspace code)
+- Configurable sampling temperature
+- Request timeout with user-friendly error messages
+- Async file reads (non-blocking extension host)
+- Workspace-wide file discovery for `/review` command (scans `src/**/*.ts`, `package.json`, `tsconfig.json`)
+- Graceful deactivation: aborts in-flight streaming requests
 
 ## Configuration
 
@@ -37,12 +42,14 @@ VS Code Chat panel participant (`@lmstudio`) that connects to LM Studio's local 
 | `lmstudio.systemPrompt` | _(coding assistant prompt)_ | System prompt sent with every request |
 | `lmstudio.maxFileSize` | `10000` | Max characters per file in context |
 | `lmstudio.maxHistoryTurns` | `20` | Max conversation turns in history |
+| `lmstudio.temperature` | `0.7` | Sampling temperature (0–2) |
+| `lmstudio.requestTimeout` | `60000` | Request timeout in ms |
 
 ## Build & Install
 
 ```bash
 npm install && npm run compile && npx vsce package
-code --install-extension lmstudio-chat-0.0.3.vsix
+code --install-extension lmstudio-chat-0.0.5.vsix
 ```
 
 Or use the provided scripts: `build.sh` / `build.bat` and `install.sh` / `install.bat`.

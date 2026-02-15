@@ -3,7 +3,7 @@
   "displayName": "LM Studio Chat",
   "description": "Chat participant for LM Studio local API",
   "publisher": "builderall",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/builderall/vscode-lmstudio-extension"
@@ -37,6 +37,10 @@
           {
             "name": "config",
             "description": "Show current LM Studio configuration"
+          },
+          {
+            "name": "review",
+            "description": "Review workspace code with full project context"
           }
         ]
       }
@@ -79,6 +83,25 @@
           "type": "number",
           "default": 20,
           "description": "Maximum number of conversation turns to include in history"
+        },
+        "lmstudio.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature for model responses (0 = deterministic, 2 = most creative)"
+        },
+        "lmstudio.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "minimum": 256,
+          "description": "Maximum tokens in model response (higher = longer, more detailed answers)"
+        },
+        "lmstudio.requestTimeout": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 5000,
+          "description": "Request timeout in milliseconds (default: 60000 = 60 seconds)"
         }
       }
     }
@@ -93,15 +116,13 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "16.x",
+    "@types/node": "18.x",
     "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "eslint": "^8.20.0",
     "mocha": "^11.7.5",
-    "typescript": "^4.7.4"
-  },
-  "dependencies": {
+    "typescript": "^4.7.4",
     "vsce": "^2.15.0"
   }
 }

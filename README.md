@@ -21,7 +21,7 @@ chmod +x build.sh install.sh
 ./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.3.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.5.vsix`
 
 **Development mode:**
 
@@ -40,6 +40,8 @@ npm install && npm run compile
 | `lmstudio.systemPrompt` | _(coding assistant prompt)_ | System prompt sent with every request |
 | `lmstudio.maxFileSize` | `10000` | Max characters per file included in context |
 | `lmstudio.maxHistoryTurns` | `20` | Max conversation turns to include in history |
+| `lmstudio.temperature` | `0.7` | Sampling temperature (0 = deterministic, 2 = most creative) |
+| `lmstudio.requestTimeout` | `60000` | Request timeout in milliseconds |
 
 ## Usage
 
@@ -56,6 +58,7 @@ npm install && npm run compile
 |---------|-------------|
 | `@lmstudio /models` | List all models currently loaded in LM Studio |
 | `@lmstudio /config` | Show current extension configuration |
+| `@lmstudio /review` | Review workspace code with full project context |
 
 ## Testing
 
@@ -63,7 +66,7 @@ npm install && npm run compile
 npm test
 ```
 
-Runs 25 unit tests covering SSE parsing, content truncation, history slicing, and command output formatting.
+Runs unit tests covering SSE parsing, content truncation, history slicing, and command output formatting.
 
 ## WSL Note
 
