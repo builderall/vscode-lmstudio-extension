@@ -2,10 +2,11 @@
   "name": "lmstudio-chat",
   "displayName": "LM Studio Chat",
   "description": "Chat sidebar for LM Studio local API",
+  "publisher": "builderall",
   "version": "0.0.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/vscode-lmstudio-extension"
+    "url": "https://github.com/builderall/vscode-lmstudio-extension"
   },
   "engines": {
     "vscode": "^1.70.0"
