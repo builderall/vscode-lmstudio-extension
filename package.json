@@ -105,13 +105,13 @@
         },
         "lmstudio.reviewInclude": {
           "type": "string",
-          "default": "{src/**,lib/**,app/**}/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}",
-          "description": "Glob pattern for files to include in /review (default covers common source directories and languages)"
+          "default": "**/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}",
+          "description": "Glob pattern for files to include in /review (default covers common source languages)"
         },
         "lmstudio.reviewExclude": {
           "type": "string",
-          "default": "{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/*.d.ts,**/*.min.js,**/*.map}",
-          "description": "Glob pattern for files to exclude from /review"
+          "default": "{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/test/**,**/tests/**,**/__tests__/**,**/*.test.*,**/*.spec.*,**/*.d.ts,**/*.min.js,**/*.map}",
+          "description": "Glob pattern for files to exclude from /review (default excludes build output, tests, and generated files)"
         }
       }
     }

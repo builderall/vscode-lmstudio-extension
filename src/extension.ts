@@ -30,8 +30,8 @@ class LMStudioService {
       temperature: config.get<number>('temperature') ?? 0.7,
       maxTokens: config.get<number>('maxTokens') || 4096,
       requestTimeout: config.get<number>('requestTimeout') || 60000,
-      reviewInclude: config.get<string>('reviewInclude') || '{src/**,lib/**,app/**}/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}',
-      reviewExclude: config.get<string>('reviewExclude') || '{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/*.d.ts,**/*.min.js,**/*.map}',
+      reviewInclude: config.get<string>('reviewInclude') || '**/*.{ts,tsx,js,jsx,py,go,rs,java,c,cpp,h,hpp,cs,rb,php,swift,kt}',
+      reviewExclude: config.get<string>('reviewExclude') || '{**/node_modules/**,**/out/**,**/dist/**,**/build/**,**/test/**,**/tests/**,**/__tests__/**,**/*.test.*,**/*.spec.*,**/*.d.ts,**/*.min.js,**/*.map}',
     };
   }
 
