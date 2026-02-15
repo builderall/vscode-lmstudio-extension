@@ -41,6 +41,16 @@ describe('parseSSEChunk', () => {
     const line = 'data: {"choices":[{"delta":{"content":"line1\\nline2"}}]}';
     assert.strictEqual(parseSSEChunk(line), 'line1\nline2');
   });
+
+  it('should throw on SSE error events', () => {
+    const line = 'data: {"error":{"message":"Cannot truncate prompt with n_keep (5103) >= n_ctx (4096)"},"message":"Cannot truncate prompt with n_keep (5103) >= n_ctx (4096)"}';
+    assert.throws(() => parseSSEChunk(line), /n_ctx/);
+  });
+
+  it('should throw on SSE error with nested error object', () => {
+    const line = 'data: {"error":{"message":"Server overloaded"}}';
+    assert.throws(() => parseSSEChunk(line), /Server overloaded/);
+  });
 });
 
 describe('truncateContent', () => {

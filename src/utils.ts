@@ -3,16 +3,24 @@
  * No vscode dependency — all functions work with plain data.
  */
 
-/** Parse a single SSE line and return the content delta, or null. */
+/** Parse a single SSE line and return the content delta, or null.
+ *  Throws on SSE error events so callers can surface them to the user. */
 export function parseSSEChunk(line: string): string | null {
   if (!line.startsWith('data: ') || line === 'data: [DONE]') {
     return null;
   }
   try {
     const json = JSON.parse(line.slice(6));
+    // Surface SSE-level errors (e.g. LM Studio context overflow)
+    if (json.error) {
+      const msg = json.error.message || json.message || JSON.stringify(json.error);
+      throw new Error(msg);
+    }
     return json.choices?.[0]?.delta?.content ?? null;
-  } catch {
-    return null;
+  } catch (e) {
+    // Re-throw intentional errors (from json.error above), swallow JSON parse failures
+    if (e instanceof SyntaxError) { return null; }
+    throw e;
   }
 }
 

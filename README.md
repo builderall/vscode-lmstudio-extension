@@ -7,6 +7,7 @@ A VS Code Chat panel participant that connects to [LM Studio](https://lmstudio.a
 - [LM Studio](https://lmstudio.ai) running with a model loaded
 - Local server enabled (default: `http://localhost:1234/v1`)
 - [GitHub Copilot Chat](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat) extension installed (provides the Chat panel)
+- **Context length** in LM Studio set to 32768+ (required for `/review`; default 4096 is too small)
 
 ## Install
 
@@ -21,7 +22,7 @@ chmod +x build.sh install.sh
 ./build.sh && ./install.sh
 ```
 
-Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.5.vsix`
+Or install manually: `Ctrl+Shift+P` → "Install from VSIX" → select `lmstudio-chat-0.0.6.vsix`
 
 **Development mode:**
 
@@ -58,7 +59,7 @@ npm install && npm run compile
 |---------|-------------|
 | `@lmstudio /models` | List all models currently loaded in LM Studio |
 | `@lmstudio /config` | Show current extension configuration |
-| `@lmstudio /review` | Review workspace code with full project context |
+| `@lmstudio /review` | Review workspace code with full project context (auto-extends timeout to 3 min) |
 
 ## Testing
 

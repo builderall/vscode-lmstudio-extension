@@ -37,6 +37,7 @@ VS Code extension that registers a Chat panel participant (`@lmstudio`) connecti
 - **v0.0.3**: Added system prompt, context truncation, slash commands (`/models`, `/config`), and auto-detect model from LM Studio API
 - **v0.0.4**: Async file reads (`vscode.workspace.fs`), configurable temperature & request timeout, `response.body` null guard, config caching per request, graceful deactivation abort, timeout error handling
 - **v0.0.5**: `/review` slash command with workspace-wide file discovery (`vscode.workspace.findFiles`), rolling timeout that resets on each SSE chunk (prevents killing long streams), leftover SSE buffer processing, single config read per request, `@types/node` bumped to 18.x, `vsce` moved to devDependencies
+- **v0.0.6**: `/review` diagnostic output (shows context size before sending), `/review` auto-extends timeout to 3 minutes minimum (large codebase context needs more time for first token), SSE error event handling in `parseSSEChunk` (surfaces LM Studio errors like context overflow instead of silently discarding them)
 
 ## Build & Install
 
@@ -57,6 +58,7 @@ Or press F5 in VS Code for Extension Development Host.
 - Duplicate extension installs (e.g., `undefined_publisher.lmstudio-chat` + `builderall.lmstudio-chat`) can prevent activation — install scripts now clean these up
 - WSL: LM Studio on Windows requires mirrored networking or port proxy for `localhost` to work from WSL
 - `lmstudio.model` can be left empty for auto-detect, but LM Studio must have a model loaded
+- `/review` requires sufficient context length in LM Studio — default 4096 is too small; set to 32768+ in LM Studio model settings
 
 ## Development Hardware
 

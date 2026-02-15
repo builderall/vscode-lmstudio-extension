@@ -250,8 +250,14 @@ export function activate(context: vscode.ExtensionContext) {
         return handleConfigCommand(cfg, stream);
       }
       if (request.command === 'review') {
-        // Use lower temperature for analytical review, and allow longer output
-        const reviewCfg = { ...cfg, temperature: 0.3, maxTokens: Math.max(cfg.maxTokens, 8192) };
+        // Use lower temperature for analytical review, allow longer output, and extend timeout
+        // Review sends all workspace files so the model needs more time for first token
+        const reviewCfg = {
+          ...cfg,
+          temperature: 0.3,
+          maxTokens: Math.max(cfg.maxTokens, 8192),
+          requestTimeout: Math.max(cfg.requestTimeout, 180000), // at least 3 minutes
+        };
         return handleReviewCommand(service, reviewCfg, stream, token);
       }
 
@@ -347,7 +353,9 @@ async function handleReviewCommand(
       return;
     }
 
-    stream.progress('Reviewing code...');
+    const contextSize = fileContext.length;
+    stream.markdown(`*Found workspace files (${(contextSize / 1024).toFixed(1)} KB of context). Sending to LM Studio for review — this may take a minute or two...*\n\n`);
+    stream.progress('Waiting for LM Studio to process...');
 
     const messages: Array<{ role: string; content: string }> = [];
     if (cfg.systemPrompt) {
